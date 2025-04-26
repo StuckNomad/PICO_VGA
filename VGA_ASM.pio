@@ -1,0 +1,124 @@
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+.pio_version 0 // only requires PIO version 0
+
+.program VGACOM
+.side_set 1 opt
+
+; fill_OSR: 
+;     pull
+; loop:
+;     out pins, 2 [10]
+;     jmp !OSRE, loop
+;     jmp fill_OSR
+
+; TX
+    out pins, 2 [7]
+    
+;-------------------------------------------------------
+; VSYNC code 
+;     pull
+;     mov ISR, OSR
+; active_vsync:
+;     mov OSR, ISR
+;     IRQ clear 0 rel side 1
+;     out x, 10
+; active_loop_vsync:
+;     wait 1 IRQ 2
+;     jmp x-- active_loop_vsync
+
+; front_porch_vsync:
+;     IRQ set 0 rel
+;     out x, 6
+; front_porch_loop_vsync:
+;     wait 1 IRQ 2
+;     jmp x-- front_porch_loop_vsync
+
+; sync_vsync:
+;     out x, 7    side 0
+; sync_loop_vsync:
+;     wait 1 IRQ 2
+;     jmp x-- sync_loop_vsync
+
+; back_porch_vsync:
+;     out x, 7    side 1
+; back_porch_loop_vsync:
+;     wait 1 IRQ 2
+;     jmp x-- back_porch_loop_vsync
+;-------------------------------------------------------
+; HSYNC code 
+
+    pull block
+    mov ISR, OSR
+    pull block
+    mov y, OSR
+active: 
+    mov OSR, ISR
+    IRQ clear 0 rel side 1
+    out x, 10
+loop_active:
+    mov exec, y ;jmp !y VSYNC_wait
+    jmp x-- loop_active
+
+front_porch: 
+    IRQ set 0 rel
+    out x, 6
+loop_front_porch: 
+    mov exec, y ;jmp !y VSYNC_wait
+    jmp x-- loop_front_porch
+
+sync: 
+    out x, 7    side 0
+loop_sync:
+    mov exec, y ;jmp !y VSYNC_wait
+    jmp x-- loop_sync
+
+back_porch:
+    out x, 7    side 1
+loop_back_porch:
+    mov exec, y ;jmp !y VSYNC_wait
+    jmp x-- loop_back_porch
+    IRQ set 2
+
+% c-sdk {
+static inline void VGACOM_program_init(PIO pio, uint sm, uint pin, uint start_instr, uint wrap_target, uint wrap, float clkdiv) {
+    pio_sm_config c = VGACOM_program_get_default_config(0);
+
+    // Map the state machine's OUT pin group to one pin, namely the `pin`
+    // parameter to this function.
+    sm_config_set_out_pins(&c, pin, 2);
+
+    // Set this pin's GPIO function(connect PIO to the pad)
+    pio_gpio_init(pio, pin);
+    pio_gpio_init(pio, pin+1);
+
+    sm_config_set_clkdiv(&c, clkdiv);
+
+    // Set the pin direction to output at the PIO
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 2, true);
+
+    sm_config_set_out_shift(&c, false, true, 32);
+    sm_config_set_wrap(&c, wrap_target, wrap);
+
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, start_instr, &c);
+
+    // Set the state machine running
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+static inline void VGASYNC_program_init(PIO pio, uint sm, uint pin, uint start_instr, uint wrap_target, uint wrap, float clkdiv){
+    pio_sm_config c = VGACOM_program_get_default_config(start_instr);
+    pio_gpio_init(pio, pin);
+    sm_config_set_clkdiv(&c, clkdiv);
+    sm_config_set_sideset_pins(&c, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+    sm_config_set_out_shift(&c, true, false, 32);   // OSRE shift to right
+    sm_config_set_wrap(&c, wrap_target, wrap);
+    pio_sm_init(pio, sm, start_instr, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
