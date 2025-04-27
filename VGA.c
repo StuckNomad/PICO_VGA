@@ -36,14 +36,6 @@ int main() {
     int sm = pio_claim_unused_sm(pio, true);
 
     VGACOM_program_init(pio, sm, USB_LINE, 0, 0, 0, 5.0);
-
-    VGASYNC_program_init(pio, sm_hsync, USB_LINE + 2, 1, 5, 20, 5.0);
-    pio_sm_put_blocking(pio, sm_hsync, 119476436);
-    pio_sm_put_blocking(pio, sm_hsync, 41026);
-
-    VGASYNC_program_init(pio, sm_vsync, USB_LINE + 3, 1, 5, 19, 1.0);
-    pio_sm_put_blocking(pio, sm_vsync, 268510687);
-    pio_sm_put_blocking(pio, sm_vsync, 8386);
 	
     int primary_dma_chan_1 = dma_claim_unused_channel(true);
     int primary_dma_chan_2 = dma_claim_unused_channel(true);
@@ -83,4 +75,12 @@ int main() {
         1,          // Write all values in the array
         true                    // start
     );
+
+    VGASYNC_program_init(pio, sm_hsync, USB_LINE + 2, 1, 5, 20, 5.0);
+    pio_sm_put_blocking(pio, sm_hsync, 119476436);
+    pio_sm_put_blocking(pio, sm_hsync, 41026);
+
+    VGASYNC_program_init(pio, sm_vsync, USB_LINE + 3, 1, 5, 19, 1.0);
+    pio_sm_put_blocking(pio, sm_vsync, 268510687);
+    pio_sm_put_blocking(pio, sm_vsync, 8386);
 }
