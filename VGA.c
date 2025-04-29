@@ -27,15 +27,16 @@ int main() {
     PIO pio = pio0;
     pio_add_program_at_offset(pio, &VGACOM_program, 0);
 
-	uint USB_LINE = 2;
+	uint VGA_LINE = 2;
 
     set_sys_clock_pll(1512000000, 6 ,2);
 
     int sm_vsync = pio_claim_unused_sm(pio, true);
     int sm_hsync = pio_claim_unused_sm(pio, true);
     int sm = pio_claim_unused_sm(pio, true);
+    int sm_flag_off = pio_claim_unused_sm(pio, true);
 
-    VGACOM_program_init(pio, sm, USB_LINE, 0, 0, 0, 5.0);
+    VGACOM_program_init(pio, sm, VGA_LINE, 1, 2, 4, 5.0);
 	
     int primary_dma_chan_1 = dma_claim_unused_channel(true);
     int primary_dma_chan_2 = dma_claim_unused_channel(true);
@@ -45,42 +46,44 @@ int main() {
     uint pio_fifo_dreq = pio_get_dreq(pio, sm, true);
 
     uint32_t bit_array_1[4] = {2576980377,2576980377,2576980377};
-    uint32_t bit_array_2[4] = {3284386755,3284386755,3284386755};
+    // uint32_t bit_array_2[4] = {3284386755,3284386755,3284386755};
 
     uint32_t* bit_array_1_addr = bit_array_1;
-    uint32_t* bit_array_2_addr = bit_array_2;
+    // uint32_t* bit_array_2_addr = bit_array_2;
 
     dma_channel_config chan_config_1 = get_dma_common_config(primary_dma_chan_1, true, false, pio_fifo_dreq, trigger_dma_chan_2);
     dma_channel_configure(primary_dma_chan_1, &chan_config_1, &pio->txf[sm], NULL, 3, false);
 
-    dma_channel_config chan_config_2 = get_dma_common_config(primary_dma_chan_2, true, false, pio_fifo_dreq, trigger_dma_chan_1);
-    dma_channel_configure(primary_dma_chan_2, &chan_config_2, &pio->txf[sm], NULL, 3, false);
+    // dma_channel_config chan_config_2 = get_dma_common_config(primary_dma_chan_2, true, false, pio_fifo_dreq, trigger_dma_chan_1);
+    // dma_channel_configure(primary_dma_chan_2, &chan_config_2, &pio->txf[sm], NULL, 3, false);
 
-    dma_channel_config chan_config_3 = get_dma_common_config(trigger_dma_chan_1, false, false, -1 , -1);
-    dma_channel_configure(
-        trigger_dma_chan_1,
-        &chan_config_3,
-        &dma_hw->ch[primary_dma_chan_1].al3_read_addr_trig,// Write address
-        &bit_array_1_addr,             // provide a read address
-        1,          // Write all values in the array
-        false                    // start
-    );
+    // dma_channel_config chan_config_3 = get_dma_common_config(trigger_dma_chan_1, false, false, -1 , -1);
+    // dma_channel_configure(
+    //     trigger_dma_chan_1,
+    //     &chan_config_3,
+    //     &dma_hw->ch[primary_dma_chan_1].al3_read_addr_trig,// Write address
+    //     &bit_array_1_addr,             // provide a read address
+    //     1,          // Write all values in the array
+    //     false                    // start
+    // );
 
     dma_channel_config chan_config_4 = get_dma_common_config(trigger_dma_chan_2, false, false, -1, -1);;
     dma_channel_configure(
         trigger_dma_chan_2,
         &chan_config_4,
-        &dma_hw->ch[primary_dma_chan_2].al3_read_addr_trig,// Write address
-        &bit_array_2_addr,             // provide a read address
+        &dma_hw->ch[primary_dma_chan_1].al3_read_addr_trig,// Write address
+        &bit_array_1_addr,             // provide a read address
         1,          // Write all values in the array
         true                    // start
     );
 
-    VGASYNC_program_init(pio, sm_hsync, USB_LINE + 2, 1, 5, 20, 5.0);
+    VGASYNC_program_init(pio, sm_hsync, VGA_LINE + 6, 5, 10, 25, 5.0);
     pio_sm_put_blocking(pio, sm_hsync, 119476436);
     pio_sm_put_blocking(pio, sm_hsync, 41026);
 
-    VGASYNC_program_init(pio, sm_vsync, USB_LINE + 3, 1, 5, 19, 1.0);
+    VGASYNC_program_init(pio, sm_vsync, VGA_LINE + 7, 5, 10, 24, 1.0);
     pio_sm_put_blocking(pio, sm_vsync, 268510687);
     pio_sm_put_blocking(pio, sm_vsync, 8386);
+
+    VGASYNC_program_init(pio, sm_flag_off, VGA_LINE, 0, 0, 0, 1.0);
 }

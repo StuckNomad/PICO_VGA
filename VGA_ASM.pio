@@ -8,78 +8,47 @@
 .program VGACOM
 .side_set 1 opt
 
-; fill_OSR: 
-;     pull
-; loop:
-;     out pins, 2 [10]
-;     jmp !OSRE, loop
-;     jmp fill_OSR
-
+; flag off
+    IRQ set 3
+;-------------------------------------------------
 ; TX
-    out pins, 2 [7]
-    
-;-------------------------------------------------------
-; VSYNC code 
-;     pull
-;     mov ISR, OSR
-; active_vsync:
-;     mov OSR, ISR
-;     IRQ clear 0 rel side 1
-;     out x, 10
-; active_loop_vsync:
-;     wait 1 IRQ 2
-;     jmp x-- active_loop_vsync
-
-; front_porch_vsync:
-;     IRQ set 0 rel
-;     out x, 6
-; front_porch_loop_vsync:
-;     wait 1 IRQ 2
-;     jmp x-- front_porch_loop_vsync
-
-; sync_vsync:
-;     out x, 7    side 0
-; sync_loop_vsync:
-;     wait 1 IRQ 2
-;     jmp x-- sync_loop_vsync
-
-; back_porch_vsync:
-;     out x, 7    side 1
-; back_porch_loop_vsync:
-;     wait 1 IRQ 2
-;     jmp x-- back_porch_loop_vsync
-;-------------------------------------------------------
-; HSYNC code 
+    wait 1 IRQ 3
+    wait 0 IRQ 1
+    wait 0 IRQ 0
+    out pins, 6 [2]
+;--------------------------------------------
+; HSYNC/VSYNC code 
 
     pull block
     mov ISR, OSR
     pull block
     mov y, OSR
+    wait 1 IRQ 3
 active: 
     mov OSR, ISR
     IRQ clear 0 rel side 1
     out x, 10
 loop_active:
-    mov exec, y ;jmp !y VSYNC_wait
+    mov exec, y 
     jmp x-- loop_active
 
 front_porch: 
-    IRQ set 0 rel
+    IRQ set 0 rel   side 0
     out x, 6
 loop_front_porch: 
-    mov exec, y ;jmp !y VSYNC_wait
+    mov exec, y 
     jmp x-- loop_front_porch
 
 sync: 
-    out x, 7    side 0
+    out x, 7    side 1
 loop_sync:
-    mov exec, y ;jmp !y VSYNC_wait
+    mov exec, y
     jmp x-- loop_sync
 
 back_porch:
-    out x, 7    side 1
+    out x, 7    side 0
 loop_back_porch:
-    mov exec, y ;jmp !y VSYNC_wait
+    mov exec, y
     jmp x-- loop_back_porch
     IRQ set 2
 
@@ -89,18 +58,22 @@ static inline void VGACOM_program_init(PIO pio, uint sm, uint pin, uint start_in
 
     // Map the state machine's OUT pin group to one pin, namely the `pin`
     // parameter to this function.
-    sm_config_set_out_pins(&c, pin, 2);
+    sm_config_set_out_pins(&c, pin, 6);
 
     // Set this pin's GPIO function(connect PIO to the pad)
     pio_gpio_init(pio, pin);
     pio_gpio_init(pio, pin+1);
+    pio_gpio_init(pio, pin+2);
+    pio_gpio_init(pio, pin+3);
+    pio_gpio_init(pio, pin+4);
+    pio_gpio_init(pio, pin+5);
 
     sm_config_set_clkdiv(&c, clkdiv);
 
     // Set the pin direction to output at the PIO
-    pio_sm_set_consecutive_pindirs(pio, sm, pin, 2, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 6, true);
 
-    sm_config_set_out_shift(&c, false, true, 32);
+    sm_config_set_out_shift(&c, false, true, 30);
     sm_config_set_wrap(&c, wrap_target, wrap);
 
     // Load our configuration, and jump to the start of the program
