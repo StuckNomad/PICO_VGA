@@ -13,12 +13,10 @@
 ;-------------------------------------------------
 ; TX
     wait 1 IRQ 3
-    wait 0 IRQ 1
-    wait 0 IRQ 0
+    wait 1 IRQ 0
     out pins, 6 [2]
 ;--------------------------------------------
 ; HSYNC/VSYNC code 
-
     pull block
     mov ISR, OSR
     pull block
@@ -26,29 +24,29 @@
     wait 1 IRQ 3
 active: 
     mov OSR, ISR
-    IRQ clear 0 rel side 1
     out x, 10
 loop_active:
-    mov exec, y 
+    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
+    IRQ set 0 rel
     jmp x-- loop_active
 
 front_porch: 
-    IRQ set 0 rel   side 0
+    set pins, 0 ;IRQ set 0 rel
     out x, 6
 loop_front_porch: 
-    mov exec, y 
+    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
     jmp x-- loop_front_porch
 
 sync: 
-    out x, 7    side 1
+    out x, 7    side 0
 loop_sync:
-    mov exec, y
+    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
     jmp x-- loop_sync
 
 back_porch:
-    out x, 7    side 0
+    out x, 7    side 1
 loop_back_porch:
-    mov exec, y
+    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
     jmp x-- loop_back_porch
     IRQ set 2
 
@@ -83,11 +81,12 @@ static inline void VGACOM_program_init(PIO pio, uint sm, uint pin, uint start_in
     pio_sm_set_enabled(pio, sm, true);
 }
 
-static inline void VGASYNC_program_init(PIO pio, uint sm, uint pin, uint start_instr, uint wrap_target, uint wrap, float clkdiv){
+static inline void VGASYNC_program_init(PIO pio, uint sm, uint pin, uint start_instr, uint wrap_target, uint wrap, float clkdiv, uint data_pin){
     pio_sm_config c = VGACOM_program_get_default_config(start_instr);
     pio_gpio_init(pio, pin);
     sm_config_set_clkdiv(&c, clkdiv);
     sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_set_pins(&c, data_pin, 6);
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
     sm_config_set_out_shift(&c, true, false, 32);   // OSRE shift to right
     sm_config_set_wrap(&c, wrap_target, wrap);

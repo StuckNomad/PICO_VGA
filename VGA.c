@@ -10,6 +10,7 @@
 // Our assembled program:
 #include "VGA_ASM.pio.h"
 #include <stdio.h>
+#include "pixel_data.h"
 
 dma_channel_config get_dma_common_config(int dma_chan, bool read_incr, bool write_incr, uint dreq, uint trigger_chan){
     dma_channel_config config = dma_channel_get_default_config(dma_chan);
@@ -36,7 +37,7 @@ int main() {
     int sm = pio_claim_unused_sm(pio, true);
     int sm_flag_off = pio_claim_unused_sm(pio, true);
 
-    VGACOM_program_init(pio, sm, VGA_LINE, 1, 2, 4, 5.0);
+    VGACOM_program_init(pio, sm, VGA_LINE, 1, 2, 3, 1.0);
 	
     int primary_dma_chan_1 = dma_claim_unused_channel(true);
     int primary_dma_chan_2 = dma_claim_unused_channel(true);
@@ -48,7 +49,7 @@ int main() {
     uint32_t bit_array_1[4] = {2576980377,2576980377,2576980377};
     // uint32_t bit_array_2[4] = {3284386755,3284386755,3284386755};
 
-    uint32_t* bit_array_1_addr = bit_array_1;
+    uint32_t* bit_array_1_addr = pixel_data;
     // uint32_t* bit_array_2_addr = bit_array_2;
 
     dma_channel_config chan_config_1 = get_dma_common_config(primary_dma_chan_1, true, false, pio_fifo_dreq, trigger_dma_chan_2);
@@ -77,13 +78,13 @@ int main() {
         true                    // start
     );
 
-    VGASYNC_program_init(pio, sm_hsync, VGA_LINE + 6, 5, 10, 25, 5.0);
-    pio_sm_put_blocking(pio, sm_hsync, 119476436);
+    VGASYNC_program_init(pio, sm_hsync, VGA_LINE + 6, 4, 9, 24, 5.0, VGA_LINE);
+    pio_sm_put_blocking(pio, sm_hsync, 119476384);
     pio_sm_put_blocking(pio, sm_hsync, 41026);
 
-    VGASYNC_program_init(pio, sm_vsync, VGA_LINE + 7, 5, 10, 24, 1.0);
+    VGASYNC_program_init(pio, sm_vsync, VGA_LINE + 7, 4, 9, 23, 1.0, VGA_LINE);
     pio_sm_put_blocking(pio, sm_vsync, 268510687);
     pio_sm_put_blocking(pio, sm_vsync, 8386);
 
-    VGASYNC_program_init(pio, sm_flag_off, VGA_LINE, 0, 0, 0, 1.0);
+    VGASYNC_program_init(pio, sm_flag_off, VGA_LINE, 0, 0, 0, 1.0, VGA_LINE);
 }
