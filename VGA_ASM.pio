@@ -9,48 +9,59 @@
 .side_set 1 opt
 
 ; flag off
-    IRQ set 3
+    IRQ set 7
 ;-------------------------------------------------
 ; TX
-    wait 1 IRQ 3
-    wait 1 IRQ 0
-    out pins, 6 [2]
+    wait 1 IRQ 7 
+    wait 0 IRQ 0    ; VSYNC
+    wait 0 IRQ 1    ; HSYNC
+    out pins, 6  [2]   
 ;--------------------------------------------
 ; HSYNC/VSYNC code 
     pull block
     mov ISR, OSR
     pull block
     mov y, OSR
-    wait 1 IRQ 3
+    wait 1 IRQ 7
 active: 
     mov OSR, ISR
-    out x, 10
+    IRQ clear 0 rel ;HSYNC - 1, VSYNC - 0
+    out x, 10   side 1
 loop_active:
-    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
-    IRQ set 0 rel
+    mov exec, y     ;executes WAIT 1 IRQ 6 for VSYNC. nop for HSYNC
     jmp x-- loop_active
 
 front_porch: 
-    set pins, 0 ;IRQ set 0 rel
+    IRQ set 0 rel   ;HSYNC - 1, VSYNC - 0
+    IRQ set 2 rel   ;HSYNC - 3, VSYNC - 2
     out x, 6
 loop_front_porch: 
-    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
+    mov exec, y     ;executes WAIT 1 IRQ 6 for VSYNC. nop for HSYNC
     jmp x-- loop_front_porch
 
 sync: 
     out x, 7    side 0
 loop_sync:
-    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
+    mov exec, y     ;executes WAIT 1 IRQ 6 for VSYNC. nop for HSYNC
     jmp x-- loop_sync
 
 back_porch:
     out x, 7    side 1
 loop_back_porch:
-    mov exec, y     ;executes WAIT 1 IRQ 2 for VSYNC. nop for HSYNC
+    mov exec, y     ;executes WAIT 1 IRQ 6 for VSYNC. nop for HSYNC
     jmp x-- loop_back_porch
-    IRQ set 2
+    IRQ set 6
 
 % c-sdk {
+
+#define TX_START 1
+#define TX_WRAP_TARGET 2
+#define TX_WRAP 4
+
+#define SYNC_START 5
+#define SYNC_WRAP_TARGET 10
+#define SYNC_WRAP 26
+
 static inline void VGACOM_program_init(PIO pio, uint sm, uint pin, uint start_instr, uint wrap_target, uint wrap, float clkdiv) {
     pio_sm_config c = VGACOM_program_get_default_config(0);
 
@@ -86,7 +97,7 @@ static inline void VGASYNC_program_init(PIO pio, uint sm, uint pin, uint start_i
     pio_gpio_init(pio, pin);
     sm_config_set_clkdiv(&c, clkdiv);
     sm_config_set_sideset_pins(&c, pin);
-    sm_config_set_set_pins(&c, data_pin, 6);
+    sm_config_set_set_pins(&c, data_pin, 6);    // this is to set data pins to zero when not in active state of sync signals. 
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
     sm_config_set_out_shift(&c, true, false, 32);   // OSRE shift to right
     sm_config_set_wrap(&c, wrap_target, wrap);
