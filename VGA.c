@@ -36,9 +36,9 @@ void __not_in_flash_func(pioIRQ_handler)(){
     // dma_channel_cleanup(TRIGGER_DMA_CHAN_2);
     // dma_channel_start(TRIGGER_DMA_CHAN_2);
 
-    while(!(pio0_hw->irq & 2)){}
-
+    while(!(pio0_hw->irq & 4)){}        // & 4 means wait for IRQ 2. 
     dma_hw->ch[PRIMARY_DMA_CHAN_1].al3_read_addr_trig = pixel_data;
+    pio_interrupt_clear(pio0, 2);
 }
 
 int main() {
