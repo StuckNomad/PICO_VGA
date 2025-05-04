@@ -35,8 +35,10 @@ void __not_in_flash_func(pioIRQ_handler)(){
     // dma_channel_abort(TRIGGER_DMA_CHAN_2);
     // dma_channel_cleanup(TRIGGER_DMA_CHAN_2);
     // dma_channel_start(TRIGGER_DMA_CHAN_2);
-    // dma_hw->ch[PRIMARY_DMA_CHAN_1].al3_read_addr_trig = pixel_data;
-    dma_channel_set_read_addr(PRIMARY_DMA_CHAN_1, pixel_data, true);
+
+    while(!(pio0_hw->irq & 2)){}
+
+    dma_hw->ch[PRIMARY_DMA_CHAN_1].al3_read_addr_trig = pixel_data;
 }
 
 int main() {
@@ -81,8 +83,8 @@ int main() {
     uint32_t* bit_array_1_addr = pixel_data;
     // uint32_t* bit_array_2_addr = bit_array_2;
 
-    dma_channel_config chan_config_1 = get_dma_common_config(PRIMARY_DMA_CHAN_1, true, false, pio_fifo_dreq, TRIGGER_DMA_CHAN_2);
-    dma_channel_configure(PRIMARY_DMA_CHAN_1, &chan_config_1, &pio->txf[sm], NULL, 61440, false);
+    dma_channel_config chan_config_1 = get_dma_common_config(PRIMARY_DMA_CHAN_1, true, false, pio_fifo_dreq, -1);
+    dma_channel_configure(PRIMARY_DMA_CHAN_1, &chan_config_1, &pio->txf[sm], pixel_data, 61440, true);
     dma_channel_set_irq0_enabled(PRIMARY_DMA_CHAN_1, true);
     irq_set_exclusive_handler(DMA_IRQ_0, pioIRQ_handler);
     irq_set_enabled(DMA_IRQ_0, true);
@@ -100,18 +102,21 @@ int main() {
     //     false                    // start
     // );
 
-    dma_channel_config chan_config_4 = get_dma_common_config(TRIGGER_DMA_CHAN_2, false, false, -1, -1);;
-    dma_channel_configure(
-        TRIGGER_DMA_CHAN_2,
-        &chan_config_4,
-        &dma_hw->ch[PRIMARY_DMA_CHAN_1].al3_read_addr_trig,// Write address
-        &bit_array_1_addr,             // provide a read address
-        1,          // Write all values in the array
-        false                    // start
-    );
+    // dma_channel_config chan_config_4 = get_dma_common_config(TRIGGER_DMA_CHAN_2, false, false, -1, -1);;
+    // dma_channel_configure(
+    //     TRIGGER_DMA_CHAN_2,
+    //     &chan_config_4,
+    //     &dma_hw->ch[PRIMARY_DMA_CHAN_1].al3_read_addr_trig,// Write address
+    //     &bit_array_1_addr,             // provide a read address
+    //     1,          // Write all values in the array
+    //     false                    // start
+    // );
 
-    pioIRQ_handler();
+    // pioIRQ_handler();
     // dma_channel_start(TRIGGER_DMA_CHAN_2);
 
     VGASYNC_program_init(pio, sm_flag_off, VGA_LINE, 0, 0, 0, 1.0, VGA_LINE);
+
+    while (true)
+        tight_loop_contents();
 }
