@@ -97,9 +97,22 @@ static inline void VGASYNC_program_init(PIO pio, uint sm, uint pin, uint start_i
     pio_gpio_init(pio, pin);
     sm_config_set_clkdiv(&c, clkdiv);
     sm_config_set_sideset_pins(&c, pin);
-    sm_config_set_set_pins(&c, data_pin, 6);    // this is to set data pins to zero when not in active state of sync signals. 
+
+    // this is to set data pins to zero when not in active state of sync signals. 
+    sm_config_set_set_pins(&c, data_pin, 6);   
+
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
-    sm_config_set_out_shift(&c, true, false, 32);   // OSRE shift to right
+    
+    // OSRE shift to right
+    sm_config_set_out_shift(&c, true, false, 32);   
+    sm_config_set_wrap(&c, wrap_target, wrap);
+    pio_sm_init(pio, sm, start_instr, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+static inline void VGAFLAG_program_init(PIO pio, uint sm, uint start_instr, uint wrap_target, uint wrap, float clkdiv){
+    pio_sm_config c = VGACOM_program_get_default_config(start_instr);
+    sm_config_set_clkdiv(&c, clkdiv);
     sm_config_set_wrap(&c, wrap_target, wrap);
     pio_sm_init(pio, sm, start_instr, &c);
     pio_sm_set_enabled(pio, sm, true);
