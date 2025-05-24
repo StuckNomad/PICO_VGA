@@ -1,9 +1,3 @@
-/**
- *C program for Ep 7, Ex 1, blink LED with unconditional Jump
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
@@ -25,6 +19,7 @@ dma_channel_config get_dma_common_config(int dma_chan, bool read_incr, bool writ
     return config;
 }
 
+// triggered after DMA transfers one frame.
 void __not_in_flash_func(pioIRQ_handler)(){
     dma_hw->ints0 = 1u << PRIMARY_DMA_CHAN;
 
@@ -52,11 +47,11 @@ int main() {
 
     VGASYNC_program_init(pio, sm_hsync, VGA_LINE + 6, SYNC_START, SYNC_WRAP_TARGET, SYNC_WRAP, 5.0, VGA_LINE);
     pio_sm_put_blocking(pio, sm_hsync, HSYNC_TIMING);
-    pio_sm_put_blocking(pio, sm_hsync, 41026);
+    pio_sm_put_blocking(pio, sm_hsync, 41026);  // nop
 
     VGASYNC_program_init(pio, sm_vsync, VGA_LINE + 7, SYNC_START, SYNC_WRAP_TARGET, SYNC_WRAP-1, 1.0, VGA_LINE);
     pio_sm_put_blocking(pio, sm_vsync, VSYNC_TIMING);
-    pio_sm_put_blocking(pio, sm_vsync, 8390);
+    pio_sm_put_blocking(pio, sm_vsync, 8390);  // WAIT 1 IRQ 6
 	
     PRIMARY_DMA_CHAN = dma_claim_unused_channel(true);
 

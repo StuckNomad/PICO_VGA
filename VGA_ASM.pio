@@ -65,8 +65,7 @@ loop_back_porch:
 static inline void VGACOM_program_init(PIO pio, uint sm, uint pin, uint start_instr, uint wrap_target, uint wrap, float clkdiv) {
     pio_sm_config c = VGACOM_program_get_default_config(0);
 
-    // Map the state machine's OUT pin group to one pin, namely the `pin`
-    // parameter to this function.
+    // Map the state machine's OUT pin group to 6 pins starting from "pin"
     sm_config_set_out_pins(&c, pin, 6);
 
     // Set this pin's GPIO function(connect PIO to the pad)
@@ -99,10 +98,11 @@ static inline void VGASYNC_program_init(PIO pio, uint sm, uint pin, uint start_i
     sm_config_set_sideset_pins(&c, pin);
 
     // this is to set data pins to zero when not in active state of sync signals. 
+    // not working yet, workaround from data side in image_formatter.py
     sm_config_set_set_pins(&c, data_pin, 6);   
 
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
-    
+
     // OSRE shift to right
     sm_config_set_out_shift(&c, true, false, 32);   
     sm_config_set_wrap(&c, wrap_target, wrap);
