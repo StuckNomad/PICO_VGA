@@ -9,7 +9,7 @@ def unpack_numbers(packed):
     d = (packed >> (10 + 6 + 7)) & ((1 << 9) - 1)
     return a, b, c, d
 
-# a, b, c, d = 319, 7, 47, 22 
+# a, b, c, d = 212, 4, 31, 14
 a, b, c, d = 479, 9, 1, 32
 
 packed = pack_numbers(a, b, c, d)
