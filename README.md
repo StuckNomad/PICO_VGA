@@ -1,6 +1,6 @@
 **Welcome to PICO VGA!**
 ***
-This is a bare-bones VGA library for RP2040 MCU.
+This is a bare-bones VGA driver for RP2040 MCU.
 
 **Details**
   1. Resolution 640x480.
