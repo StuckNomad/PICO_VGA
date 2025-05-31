@@ -9,6 +9,15 @@
 
 int PRIMARY_DMA_CHAN;
 
+// triggered after DMA transfers one frame.
+void __not_in_flash_func(pioIRQ_handler)(){
+    dma_hw->ints0 = 1u << PRIMARY_DMA_CHAN;
+
+    while(!(pio0_hw->irq & 4)){}        // & 4 means wait for IRQ 2. 
+    dma_hw->ch[PRIMARY_DMA_CHAN].al3_read_addr_trig = pixel_data;
+    pio_interrupt_clear(pio0, 2);
+}
+
 dma_channel_config get_dma_common_config(int dma_chan, bool read_incr, bool write_incr, uint dreq, uint trigger_chan){
     dma_channel_config config = dma_channel_get_default_config(dma_chan);
     channel_config_set_transfer_data_size(&config, DMA_SIZE_32);
@@ -17,15 +26,6 @@ dma_channel_config get_dma_common_config(int dma_chan, bool read_incr, bool writ
     if(dreq != -1)  channel_config_set_dreq(&config, dreq);
     if(trigger_chan != -1)  channel_config_set_chain_to(&config, trigger_chan);
     return config;
-}
-
-// triggered after DMA transfers one frame.
-void __not_in_flash_func(pioIRQ_handler)(){
-    dma_hw->ints0 = 1u << PRIMARY_DMA_CHAN;
-
-    while(!(pio0_hw->irq & 4)){}        // & 4 means wait for IRQ 2. 
-    dma_hw->ch[PRIMARY_DMA_CHAN].al3_read_addr_trig = pixel_data;
-    pio_interrupt_clear(pio0, 2);
 }
 
 int main() {
